@@ -1,0 +1,14 @@
+
+#ifndef HYXWIP_UPDATER_H
+#define HYXWIP_UPDATER_H
+
+#endif //HYXWIP_UPDATER_H
+
+enum SOCKPAIR_IND {
+    FDIND_VIEW=0,
+    FDIND_UPDATER=1
+};
+enum POLL_IND {
+    IND_PAULA=0,
+    IND_VIEW=1
+};

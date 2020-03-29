@@ -22,7 +22,7 @@
 #include <signal.h>
 #include <setjmp.h>
 
-
+#include <pthread.h>
 
 struct blob blob;
 struct view view;
@@ -32,6 +32,10 @@ bool quit;
 
 jmp_buf jmp_mainloop;
 
+void init_thread()
+{
+    pthread_create(&updaterthread_id, NULL, updater_init, arg);
+}
 
 void die(char const *s)
 {
