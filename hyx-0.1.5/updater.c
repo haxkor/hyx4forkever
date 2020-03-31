@@ -14,13 +14,13 @@
 
 #include <assert.h>
 #include "updater.h"
+#include "view.h"
 
 #define MAINFD 0
 #define UPDATEFD 1
 
 struct sockaddr_un to_paula;
-
-void fromPaula();
+struct blob blob;
 
 int to_paula_fd;
 char sockname[19] = "/tmp/paulasock";
@@ -28,6 +28,8 @@ pthread_mutex_t mutex_data = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_t updaterthread;
 int updater_communicationfds[2];
+struct view *upd_viewPtr;
+FILE *mylog;
 
 void setup_sock() {
     memset(&to_paula, 0, sizeof(struct sockaddr_un));
@@ -48,12 +50,77 @@ void setup_sock() {
 
 }
 
+void getUpdates_fromPaula() {
+    fprintf(mylog, "in getUpdates_paula\n");
+    //get number of updates
+    int ret, num_updates = 69;
+    ret = recv(to_paula_fd, &num_updates, 4, 0);
+    if (ret != 4) pdie("recv");
+
+    if (fflush(mylog)) printf("fflush log error");
+    fprintf(mylog, "after fflush should work");
+
+    struct update_entry entries[num_updates];
+    //fprintf(mylog, "num_up= %d\n", num_updates);
+
+    for (int i = 0; i < num_updates; i++) {         //we get the updates
+        //fprintf(mylog,"in getupdate get loop\n");
+        struct update_entry * entry = &entries[i];
+        byte buf[0x100];
+
+        ret = recv(to_paula_fd, &entry->start, 4, 0);
+        fprintf(mylog, "first receive, ret=%d, start= %d \n", ret, entry->start);
+        if (ret != 4) pdie("recv");
+
+        fprintf(mylog, "before second receive\n");
+        ret = recv(to_paula_fd, &entry->len, 4, 0);
+        fprintf(mylog, "second receive, ret=%d, len= %d \n", ret, entry->len);
+        if (ret != 4) pdie("recv");
+
+        uint32_t len = entry->len;
+        entry->newdata = malloc(len);
+        ret = recv(to_paula_fd, entry->newdata, len, 0);
+        fprintf(mylog, "received data. len=%d, ret=%d,   data=%llx", len, ret, *entry->newdata);
+        if (ret != len) pdie("recv");
+
+    }
+
+    // we write the updates
+    if (0 != pthread_mutex_lock(&blob.mutex_data)) pdie("pthread_mutex_lock");
+    for (int i = 0; i < num_updates; i++) {
+        struct update_entry * entry = &entries[i];
+        blob_replace(&blob, entry->start, entry->newdata, entry->len, false);
+        view_dirty_fromto(upd_viewPtr, entry->start, entry->start + entry->len);
+    }
+    if (0 != pthread_mutex_unlock(&blob.mutex_data)) pdie("pthread_mutex_unlock");
+
+    fprintf(mylog, "updates written, returning\n");
+    fflush(mylog);
+
+
+}
+
 void fromPaula(short events) {
-    printf("fromPaula() has been called\n");
-    char buf[32];
-    recv(to_paula_fd, buf, 32, 0);
-    printf(buf);
-    sleep(4);
+    //handle events here
+    assert(events & POLLIN);
+
+    fprintf(mylog, "fromPaula() has been called\n");
+    char check;
+
+    recv(to_paula_fd, &check, 1, 0);
+
+    switch ((int) check) {
+        case 1:
+            fprintf(mylog, "calling getUpdates\n");
+            getUpdates_fromPaula();
+            break;
+
+        default:
+            fprintf(mylog, "check = %d \n", (int) check);
+            break;
+
+    }
+
 
 }
 
@@ -65,11 +132,13 @@ void fromMain(short events) {
 
 }
 
+/*
 void pdie(char *s) {
     puts(s);
-}
+}           //*/
 
-#define XOR(A,B) (bool)(A)!=(bool)(B)
+#define XOR(A, B) (bool)(A)!=(bool)(B)
+
 void *start(void *arg) {
     setup_sock();
 
@@ -83,11 +152,14 @@ void *start(void *arg) {
 
 
     while (1) {
-        memset(pollfd, 0, 2 * sizeof(struct pollfd));
+        fprintf(mylog, "in infinite loop\n");
+
 
         int ret = poll(pollfd, 2, 123000);
-        short paula_revents=pollfd[IND_PAULA].revents;
-        short view_revents=pollfd[IND_VIEW].revents;
+        fprintf(mylog, "poll returned %d\n", ret);
+
+        short paula_revents = pollfd[IND_PAULA].revents;
+        short view_revents = pollfd[IND_VIEW].revents;
         switch (ret) {
             case -1:
                 pdie("poll");
@@ -95,7 +167,8 @@ void *start(void *arg) {
                 printf("poll timed out\n");
                 exit(EXIT_FAILURE);
             case 1:
-                assert(XOR(paula_revents,view_revents));   //if both events are set, somethings wrong
+                assert(XOR(paula_revents, view_revents));   //if both events are set, somethings wrong
+                fprintf(mylog, "case 1 in loop\n");
                 if (paula_revents)
                     fromPaula(paula_revents);
                 else {
@@ -103,10 +176,11 @@ void *start(void *arg) {
                 }
                 break;
             case 2:     // we should update both realheap and our copy. For now, dismiss our copy
-                fromPaula(pollfd[IND_PAULA].revents);
+                fromMain(view_revents);
+                fromPaula(paula_revents);
                 break;
             default:
-                printf("poll returned %d, i did not expect that\n", ret);
+                printf("poll() returned %d, i did not expect that\n", ret);
                 exit(EXIT_FAILURE);
         }
     }
@@ -115,15 +189,22 @@ void *start(void *arg) {
 }
 
 
-void updater_init(void *arg) {
+void updater_init(struct view *view) {
     if (0 != socketpair(AF_UNIX, SOCK_DGRAM, 0, updater_communicationfds)) pdie("socketpair");
+    mylog = fopen("logfile", "w");
+    if (mylog < 0)
+        pdie("fopen");
 
+    fprintf(mylog, "init log");
+
+    upd_viewPtr = view;
 
     pthread_create(&updaterthread, NULL, start, NULL);
 
 }
 
 
+/*
 int main() {
 
     updater_init(NULL);
@@ -138,3 +219,4 @@ int main() {
 
     puts("bye");
 }
+ //*/

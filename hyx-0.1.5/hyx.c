@@ -1,4 +1,4 @@
-/*
+/* tst
  *
  * Copyright (c) 2016-2018 Lorenz Panny
  *
@@ -15,6 +15,7 @@
 #include "view.h"
 #include "input.h"
 #include "ansi.h"
+#include "updater.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,10 +33,6 @@ bool quit;
 
 jmp_buf jmp_mainloop;
 
-void init_thread()
-{
-    pthread_create(&updaterthread_id, NULL, updater_init, arg);
-}
 
 void die(char const *s)
 {
@@ -162,6 +159,10 @@ int main(int argc, char **argv)
     blob_load(&blob, filename);
     view.color = true;
     input_init(&input, &view);
+
+    updater_init(&view);
+
+
 
     /* set up signal handler */
     memset(&sigact, 0, sizeof(sigact));

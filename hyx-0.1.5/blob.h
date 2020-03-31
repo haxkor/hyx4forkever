@@ -3,6 +3,10 @@
 
 #include "common.h"
 #include "history.h"
+#include "updater.h"
+
+
+#include <pthread.h>
 
 enum blob_alloc {
     BLOB_MALLOC = 0,
@@ -14,6 +18,7 @@ struct blob {
 
     size_t len;
     byte *data;
+    pthread_mutex_t mutex_data;
 
     char *filename;
 
@@ -26,6 +31,13 @@ struct blob {
         size_t len;
         byte *data;
     } clipboard;
+
+    size_t up_entry_count;
+    struct update_entry * updateEntries;
+
+
+
+
 };
 
 void blob_init(struct blob *blob);
