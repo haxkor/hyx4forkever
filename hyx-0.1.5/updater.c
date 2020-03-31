@@ -103,6 +103,15 @@ void getUpdates_fromPaula() {
 void fromPaula(short events) {
     //handle events here
     assert(events & POLLIN);
+    if (events != POLLIN){
+        if (events | POLLERR) {
+            printf("connection to paula closed\n");
+            exit(EXIT_FAILURE);
+        } else {
+            printf("unknown event happened in fromPaula(), event= %hd\n", events);
+            exit(EXIT_FAILURE);
+        }
+    }
 
     fprintf(mylog, "fromPaula() has been called\n");
     char check;
