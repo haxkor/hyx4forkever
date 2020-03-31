@@ -17,10 +17,10 @@ static void diff_apply(struct blob *blob, struct diff *diff)
 {
     switch (diff->type) {
     case REPLACE:
-        blob_replace(blob, diff->pos, diff->data, diff->len, false);
+        blob_replace(blob, diff->pos, diff->data, diff->len, false, true);
         break;
     case INSERT:
-        blob_insert(blob, diff->pos, diff->data, diff->len, false);
+        blob_insert(blob, diff->pos, diff->data, diff->len, false, true);
         break;
     case DELETE:
         blob_delete(blob, diff->pos, diff->len, false);

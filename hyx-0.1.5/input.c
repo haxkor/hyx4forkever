@@ -389,7 +389,7 @@ static void do_inc_dec(struct input *input, byte diff)
         return;
 
     byte b = blob_at(B, input->cur) + diff;
-    blob_replace(input->view->blob, input->cur, &b, 1, true);
+    blob_replace(input->view->blob, input->cur, &b, 1, true, true);
     view_dirty_at(V, input->cur);
 }
 
@@ -445,12 +445,12 @@ void input_get(struct input *input, bool *quit)
 
             b = k;
             if (input->input_mode.insert) {
-                blob_insert(B, input->cur, &b, sizeof(b), true);
+                blob_insert(B, input->cur, &b, sizeof(b), true, true);
                 view_recompute(V, false);
                 view_dirty_from(V, input->cur);
             }
             else {
-                blob_replace(B, input->cur, &b, sizeof(b), true);
+                blob_replace(B, input->cur, &b, sizeof(b), true, true);
                 view_dirty_at(V, input->cur);
             }
 
@@ -470,12 +470,12 @@ void input_get(struct input *input, bool *quit)
                     input->cur_val = 0;
                 input->cur_val |= (k > '9' ? k - 'a' + 10 : k - '0') << 4 * (input->low_nibble = !input->low_nibble);
                 if (input->low_nibble) {
-                    blob_insert(B, input->cur, &input->cur_val, sizeof(input->cur_val), true);
+                    blob_insert(B, input->cur, &input->cur_val, sizeof(input->cur_val), true, true);
                     view_recompute(V, false);
                     view_dirty_from(V, input->cur);
                 }
                 else {
-                    blob_replace(B, input->cur, &input->cur_val, sizeof(input->cur_val), true);
+                    blob_replace(B, input->cur, &input->cur_val, sizeof(input->cur_val), true, true);
                     view_dirty_at(V, input->cur);
                     cur_move_rel(input, MOVE_RIGHT, 1, 1);
                     return;
@@ -485,7 +485,7 @@ void input_get(struct input *input, bool *quit)
                 input->cur_val = input->cur < blob_length(B) ? blob_at(B, input->cur) : 0;
                 input->cur_val = input->cur_val & 0xf << 4 * input->low_nibble;
                 input->cur_val |= (k > '9' ? k - 'a' + 10 : k - '0') << 4 * (input->low_nibble = !input->low_nibble);
-                blob_replace(B, input->cur, &input->cur_val, sizeof(input->cur_val), true);
+                blob_replace(B, input->cur, &input->cur_val, sizeof(input->cur_val), true, true);
                 view_dirty_at(V, input->cur);
 
                 if (!input->low_nibble) {

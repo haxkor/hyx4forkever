@@ -17,7 +17,8 @@ void blob_init(struct blob *blob)
     history_init(&blob->redo);
 }
 
-void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history)
+
+void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool update)
 {
     assert(pos + len <= blob->len);
 
@@ -34,7 +35,7 @@ void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, b
     memcpy(blob->data + pos, data, len);
 }
 
-void blob_insert(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history)
+void blob_insert(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool update)
 {
     assert(pos <= blob->len);
     assert(blob_can_move(blob));
@@ -126,10 +127,10 @@ size_t blob_paste(struct blob *blob, size_t pos, enum op_type type)
 
     switch (type) {
     case REPLACE:
-        blob_replace(blob, pos, blob->clipboard.data, min(blob->clipboard.len, blob->len - pos), true);
+        blob_replace(blob, pos, blob->clipboard.data, min(blob->clipboard.len, blob->len - pos), true, true);
         break;
     case INSERT:
-        blob_insert(blob, pos, blob->clipboard.data, blob->clipboard.len, true);
+        blob_insert(blob, pos, blob->clipboard.data, blob->clipboard.len, true, true);
         break;
     default:
         die("bad operation");
