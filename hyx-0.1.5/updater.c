@@ -30,6 +30,20 @@ int updater_communicationfds[2];    // used to communicate changes in hyx to the
 struct view *upd_viewPtr;
 FILE *mylog;
 
+pthread_mutex_t communication_mutex=PTHREAD_MUTEX_INITIALIZER;
+
+int send_strict(int fd, const void * buf, size_t len, int flags){
+    int result=send(fd,buf,len,flags);
+    if (result != len) pdie("send");
+    return result;
+}
+
+int recv_strict(int fd, void * buf, size_t len, int flags){
+    int result= recv(fd,buf,len,flags);
+    if (result != len) pdie("recv");
+    return result;
+}
+
 void setup_sock() {
     memset(&to_paula, 0, sizeof(struct sockaddr_un));
 
@@ -126,11 +140,71 @@ void fromPaula(short events) {
 
 }
 
+/* this is called by the functions changing the data of the blob. */
+void updatefromBlob(struct blob * blob, size_t pos, size_t len)
+{
+    int fd= updater_communicationfds[FDIND_VIEW];   //send it to the updater
+    char type[1]={0x20};     //to indicate an update
+    fprintf(mylog,"in update from blob\n");
+
+    pthread_mutex_lock(&communication_mutex);
+    send_strict(fd,&type,1,0);
+    send_strict(fd,&pos,SZ_SIZET,0);
+
+    send_strict(fd,&len ,SZ_SIZET,0);       //fails
+
+    pthread_mutex_unlock(&communication_mutex);
+
+    fprintf(mylog,"ret last send= \t");
+    fflush(mylog);
+
+
+
+}
+
+/* the other thread wrote pos and len to the socket, we will send the bytes to paula */
+void sendToPaula(){
+    int fromfd= updater_communicationfds[FDIND_UPDATER];    //recv from main thread
+
+    char check=0x21;
+    size_t pos,len;
+
+    fprintf(mylog, "in sendToPaula");
+
+    recv_strict(fromfd, &pos, SZ_SIZET, 0);
+    recv_strict(fromfd, &len, SZ_SIZET, 0);
+
+    // send it to paula
+    send_strict(to_paula_fd, &check, SZ_CHAR, 0);
+    send_strict(to_paula_fd, &pos,SZ_SIZET,0);
+    send_strict(to_paula_fd, &len,SZ_SIZET,0);
+    send_strict(to_paula_fd, blob.data + pos, len, 0);
+
+
+    fprintf(mylog, "sent stuff to paula, start= %d, len= %d\n",pos, len);
+}
+
 void fromMain(short events) {
-    printf("fromMain() has been called\n");
-    char buf[32];
-    recv(updater_communicationfds[UPDATEFD], buf, 32, 0);
-    puts(buf);
+    assert(events | POLLIN);
+    if (events != POLLIN){
+        if (events | POLLERR)
+            die("fromMain POLLERR");
+        else die("unknown event in fromMain");
+
+    }
+    char check;
+    int fd=updater_communicationfds[FDIND_UPDATER];
+
+    if (1 != recv(fd,&check,1,0)) pdie("recv");
+
+    switch ((int)check){
+        case 0x20:
+            sendToPaula();
+            break;
+        default:
+            die("fromMain encountered unknown check value");
+    }
+
 
 }
 
@@ -155,6 +229,7 @@ void *start(void *arg) {
 
         int ret = poll(pollfd, 2, 123000);
         fprintf(mylog, "poll returned %d\n", ret);
+        fflush(mylog);
 
         short paula_revents = pollfd[IND_PAULA].revents;
         short view_revents = pollfd[IND_VIEW].revents;
@@ -170,7 +245,9 @@ void *start(void *arg) {
                 if (paula_revents)
                     fromPaula(paula_revents);
                 else {
+                    pthread_mutex_lock(&communication_mutex);
                     fromMain(view_revents);
+                    pthread_mutex_unlock(&communication_mutex);
                 }
                 break;
             case 2:     // we should update both realheap and our copy. For now, dismiss our copy

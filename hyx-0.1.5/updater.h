@@ -14,6 +14,8 @@ enum POLL_IND {
     IND_PAULA=0,
     IND_VIEW=1
 };
+#define SZ_SIZET sizeof(size_t)
+#define SZ_CHAR sizeof(char)
 
 
 struct update_entry {
@@ -38,6 +40,7 @@ void fromPaula(short events);
 void getUpdates_fromPaula();
 void setup_sock();
 
+void updatefromBlob(struct blob * blob, size_t pos, size_t len);
 
 
 

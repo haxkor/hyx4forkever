@@ -1,6 +1,7 @@
 
 #include "common.h"
 #include "blob.h"
+#include "updater.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -28,9 +29,14 @@ void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, b
         ++blob->saved_dist;
     }
 
-    if (blob->dirty)    //only if file is mmaped
+    if (blob->dirty)
         for (size_t i = pos / 0x1000; i < (pos + len + 0xfff) / 0x1000; ++i)
             blob->dirty[i / 8] |= 1 << i % 8;
+
+    if (update) {
+        updatefromBlob(blob, pos, len);
+    }
+
 
     memcpy(blob->data + pos, data, len);
 }
@@ -49,6 +55,11 @@ void blob_insert(struct blob *blob, size_t pos, byte const *data, size_t len, bo
     }
 
     blob->data = realloc_strict(blob->data, blob->len += len);
+
+    if (update) exit(EXIT_FAILURE);
+        /* this should not happen */
+
+
 
     memmove(blob->data + pos + len, blob->data + pos, blob->len - pos - len);
     memcpy(blob->data + pos, data, len);

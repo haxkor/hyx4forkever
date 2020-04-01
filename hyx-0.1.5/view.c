@@ -18,9 +18,9 @@ static size_t view_end(struct view const *view)
     return view->start + view->rows * view->cols;
 }
 
-int log2(size_t n)
+size_t mylog2(size_t n)
 {
-    int result=0;
+    size_t result=0;
     while(n){
         result+= n>0;
         n>>=1;
@@ -37,7 +37,7 @@ void view_init(struct view *view, struct blob *blob, struct input *input, size_t
 
     if (viewoffset != 0){
         view->offset = viewoffset;
-        view->pos_digits= (unsigned) log2(viewoffset);
+        view->pos_digits= mylog2(viewoffset);
     }
 
     if (tcgetattr(fileno(stdin), &view->term))
