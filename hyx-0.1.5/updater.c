@@ -151,12 +151,10 @@ void updatefromBlob(struct blob * blob, size_t pos, size_t len)
     send_strict(fd,&type,1,0);
     send_strict(fd,&pos,SZ_SIZET,0);
 
-    send_strict(fd,&len ,SZ_SIZET,0);       //fails
+    send_strict(fd,&len ,SZ_SIZET,0);
 
-    pthread_mutex_unlock(&communication_mutex);
+    pthread_mutex_unlock(&communication_mutex); //as soon as i send it all in one go it should be unnecessary
 
-    fprintf(mylog,"ret last send= \t");
-    fflush(mylog);
 
 
 
