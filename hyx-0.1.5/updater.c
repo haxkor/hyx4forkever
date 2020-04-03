@@ -193,18 +193,20 @@ void sendToPaula() {
         byte buf[SZ_CHAR + SZ_SIZET * 2 + len];
         memset(buf, 0, sizeof(buf));
         byte *bufptr = buf;
+        int send_len = sizeof(buf) - SZ_SIZET;
 
         memcpy(bufptr, &check, SZ_CHAR);
         bufptr += SZ_CHAR;
         if (check != UPD_FROMBLOBNEXT) {
             memcpy(bufptr, &pos, SZ_SIZET);
             bufptr += SZ_SIZET;
+            send_len = sizeof(buf);
         }
         memcpy(bufptr, &len, SZ_SIZET);
         bufptr += SZ_SIZET;
         memcpy(bufptr, blob.data + pos, len);
 
-        send_strict(to_paula_fd, buf, sizeof(buf), 0);
+        send_strict(to_paula_fd, buf, send_len, 0);
     }
 
 
