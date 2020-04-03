@@ -45,7 +45,6 @@ void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, b
             default:
                 pdie("pthread_mutex_trylock");
         }
-
         updatefromBlob(blob, pos, len);     //send updates to paula
     }
     memcpy(blob->data + pos, data, len);
@@ -68,7 +67,7 @@ void blob_insert(struct blob *blob, size_t pos, byte const *data, size_t len, bo
     blob->data = realloc_strict(blob->data, blob->len += len);
 
     if (update) exit(EXIT_FAILURE);
-        /* this should not happen */
+        /* this should not happen   TODO exclude insert mode from this hyx */
 
 
 
