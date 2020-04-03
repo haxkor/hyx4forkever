@@ -11,6 +11,7 @@
 #include <sys/fcntl.h>
 #include <sys/mman.h>
 
+
 void blob_init(struct blob *blob)
 {
     memset(blob, 0, sizeof(*blob));

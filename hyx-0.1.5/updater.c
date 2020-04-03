@@ -121,12 +121,12 @@ void fromPaula(short events) {
     }
 
     fprintf(mylog, "fromPaula() has been called\n");
-    char check;
+    char check = 0;
 
     recv(to_paula_fd, &check, 1, 0);
 
     switch ((int) check) {
-        case 1:
+        case UPD_FROMPAULA:
             fprintf(mylog, "calling getUpdates\n");
             getUpdates_fromPaula();
             break;
@@ -134,52 +134,62 @@ void fromPaula(short events) {
         default:
             fprintf(mylog, "check = %d \n", (int) check);
             break;
-
     }
-
 
 }
 
 /* this is called by the functions changing the data of the blob. */
-void updatefromBlob(struct blob * blob, size_t pos, size_t len)
-{
-    int fd= updater_communicationfds[FDIND_VIEW];   //send it to the updater
-    char type[1]={0x20};     //to indicate an update
-    fprintf(mylog,"in update from blob\n");
+void updatefromBlob(struct blob * blob, size_t pos, size_t len) {
+    int fd = updater_communicationfds[FDIND_VIEW];   //send it to the updater
+    char type = UPD_FROMBLOB;     //to indicate an update
+    fprintf(mylog, "in update from blob\n");
+
 
     pthread_mutex_lock(&communication_mutex);
-    send_strict(fd,&type,1,0);
-    send_strict(fd,&pos,SZ_SIZET,0);
+    send_strict(fd, &type, 1, 0);
+    send_strict(fd, &pos, SZ_SIZET, 0);
 
-    send_strict(fd,&len ,SZ_SIZET,0);
-
+    send_strict(fd, &len, SZ_SIZET, 0);
     pthread_mutex_unlock(&communication_mutex); //as soon as i send it all in one go it should be unnecessary
-
-
-
 
 }
 
+size_t nextpos = 0;    /*this var is used to communicate bytechanges next to each other without sending pos twice */
+bool nextpos_init = false;
+
+
 /* the other thread wrote pos and len to the socket, we will send the bytes to paula */
-void sendToPaula(){
-    int fromfd= updater_communicationfds[FDIND_UPDATER];    //recv from main thread
-
-    char check=0x21;
-    size_t pos,len;
-
+void sendToPaula() {
     fprintf(mylog, "in sendToPaula");
+    int fromfd = updater_communicationfds[FDIND_UPDATER];    //recv from main thread
 
+    size_t pos, len;
     recv_strict(fromfd, &pos, SZ_SIZET, 0);
     recv_strict(fromfd, &len, SZ_SIZET, 0);
 
+    /* if we just wrote to pos -1, we dont need to send the position again*/
+    char check = UPD_FROMBLOB;
+    if (!nextpos_init) {          //first time the method is called
+        nextpos_init = true;
+        nextpos = pos + len;
+    } else {
+        if (pos == nextpos) {
+            check = UPD_FROMBLOBNEXT;
+            nextpos += len;
+        } else {
+            nextpos = pos + len;
+        }
+    }
+
+
     // send it to paula
     send_strict(to_paula_fd, &check, SZ_CHAR, 0);
-    send_strict(to_paula_fd, &pos,SZ_SIZET,0);
-    send_strict(to_paula_fd, &len,SZ_SIZET,0);
+    if (check != UPD_FROMBLOBNEXT) send_strict(to_paula_fd, &pos, SZ_SIZET, 0);
+    send_strict(to_paula_fd, &len, SZ_SIZET, 0);
     send_strict(to_paula_fd, blob.data + pos, len, 0);
 
 
-    fprintf(mylog, "sent stuff to paula, start= %d, len= %d\n",pos, len);
+    fprintf(mylog, "sent stuff to paula, start= %d, len= %d\n", pos, len);
 }
 
 void fromMain(short events) {
@@ -188,18 +198,20 @@ void fromMain(short events) {
         if (events | POLLERR)
             die("fromMain POLLERR");
         else die("unknown event in fromMain");
-
     }
+
     char check;
     int fd=updater_communicationfds[FDIND_UPDATER];
 
     if (1 != recv(fd,&check,1,0)) pdie("recv");
 
-    switch ((int)check){
-        case 0x20:
+    switch ((int)check) {
+        case UPD_FROMBLOB:
             sendToPaula();
             break;
         default:
+            printf("in frommain, check= %d", check);
+            exit(EXIT_FAILURE);
             die("fromMain encountered unknown check value");
     }
 
@@ -256,6 +268,8 @@ void *start(void *arg) {
                 printf("poll() returned %d, i did not expect that\n", ret);
                 exit(EXIT_FAILURE);
         }
+
+
     }
 
 
