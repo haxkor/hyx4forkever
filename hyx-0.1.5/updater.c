@@ -44,6 +44,7 @@ int recv_strict(int fd, void * buf, size_t len, int flags){
     return result;
 }
 
+
 void setup_sock() {
     memset(&to_paula, 0, sizeof(struct sockaddr_un));
 
@@ -183,10 +184,28 @@ void sendToPaula() {
 
 
     // send it to paula
-    send_strict(to_paula_fd, &check, SZ_CHAR, 0);
-    if (check != UPD_FROMBLOBNEXT) send_strict(to_paula_fd, &pos, SZ_SIZET, 0);
-    send_strict(to_paula_fd, &len, SZ_SIZET, 0);
-    send_strict(to_paula_fd, blob.data + pos, len, 0);
+    if (false) {
+        send_strict(to_paula_fd, &check, SZ_CHAR, 0);
+        if (check != UPD_FROMBLOBNEXT) send_strict(to_paula_fd, &pos, SZ_SIZET, 0);
+        send_strict(to_paula_fd, &len, SZ_SIZET, 0);
+        send_strict(to_paula_fd, blob.data + pos, len, 0);
+    } else {
+        byte buf[SZ_CHAR + SZ_SIZET * 2 + len];
+        memset(buf, 0, sizeof(buf));
+        byte *bufptr = buf;
+
+        memcpy(bufptr, &check, SZ_CHAR);
+        bufptr += SZ_CHAR;
+        if (check != UPD_FROMBLOBNEXT) {
+            memcpy(bufptr, &pos, SZ_SIZET);
+            bufptr += SZ_SIZET;
+        }
+        memcpy(bufptr, &len, SZ_SIZET);
+        bufptr += SZ_SIZET;
+        memcpy(bufptr, blob.data + pos, len);
+
+        send_strict(to_paula_fd, buf, sizeof(buf), 0);
+    }
 
 
     fprintf(mylog, "sent stuff to paula, start= %d, len= %d\n", pos, len);
