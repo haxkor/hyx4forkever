@@ -34,12 +34,22 @@ void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, b
         for (size_t i = pos / 0x1000; i < (pos + len + 0xfff) / 0x1000; ++i)
             blob->dirty[i / 8] |= 1 << i % 8;
 
+    /* update==True only if we are getting user input. after this, make sure the updaterthread isnt using blob.data
+     * The locking is done here so that the updater is guaranteed to write all updates at once*/
     if (update) {
-        updatefromBlob(blob, pos, len);
+        switch (pthread_mutex_trylock(&blob->mutex_data)) {
+            case 0: //lock aquired
+                break;
+            case EBUSY: //already locked, so we will ignore the users changes
+                return;
+            default:
+                pdie("pthread_mutex_trylock");
+        }
+
+        updatefromBlob(blob, pos, len);     //send updates to paula
     }
-
-
     memcpy(blob->data + pos, data, len);
+    pthread_mutex_unlock(&blob->mutex_data);
 }
 
 void blob_insert(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool update)

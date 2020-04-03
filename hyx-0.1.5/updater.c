@@ -67,7 +67,7 @@ void setup_sock() {
 void getUpdates_fromPaula() {
     fprintf(mylog, "in getUpdates_paula\n");
     //get number of updates
-    int ret, num_updates = 69;
+    int ret, num_updates;
     ret = recv(to_paula_fd, &num_updates, 4, 0);
     if (ret != 4) pdie("recv");
 
@@ -79,18 +79,14 @@ void getUpdates_fromPaula() {
     for (int i = 0; i < num_updates; i++) {         //we get the updates
         //fprintf(mylog,"in getupdate get loop\n");
         struct update_entry * entry = &entries[i];
-        byte buf[0x100];
 
-        ret = recv(to_paula_fd, &entry->start, 4, 0);
-        if (ret != 4) pdie("recv");
+        recv_strict(to_paula_fd, &entry->start, 4, 0);
 
-        ret = recv(to_paula_fd, &entry->len, 4, 0);
-        if (ret != 4) pdie("recv");
+        recv_strict(to_paula_fd, &entry->len, 4, 0);
 
-        uint32_t len = entry->len;
+        size_t len = entry->len;
         entry->newdata = malloc(len);
-        ret = recv(to_paula_fd, entry->newdata, len, 0);
-        if (ret != len) pdie("recv");
+        recv_strict(to_paula_fd, entry->newdata, len, 0);
 
     }
 
@@ -124,7 +120,7 @@ void fromPaula(short events) {
     fprintf(mylog, "fromPaula() has been called\n");
     char check = 0;
 
-    recv(to_paula_fd, &check, 1, 0);
+    recv_strict(to_paula_fd, &check, 1, 0);
 
     switch ((int) check) {
         case UPD_FROMPAULA:
@@ -184,7 +180,7 @@ void sendToPaula() {
 
 
     // send it to paula
-    if (false) {
+    if (false) {        // no truncation
         send_strict(to_paula_fd, &check, SZ_CHAR, 0);
         if (check != UPD_FROMBLOBNEXT) send_strict(to_paula_fd, &pos, SZ_SIZET, 0);
         send_strict(to_paula_fd, &len, SZ_SIZET, 0);
