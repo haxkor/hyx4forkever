@@ -23,7 +23,7 @@ struct sockaddr_un to_paula;
 struct blob blob;
 
 int to_paula_fd;
-char sockname[19] = "/tmp/paulasock";
+extern char *socketname;
 
 pthread_t updaterthread;
 int updater_communicationfds[2];    // used to communicate changes in hyx to the updater
@@ -49,11 +49,10 @@ void setup_sock() {
     memset(&to_paula, 0, sizeof(struct sockaddr_un));
 
     to_paula.sun_family = AF_UNIX;
-    strcpy(to_paula.sun_path, sockname);
+    strcpy(to_paula.sun_path, socketname);
     to_paula_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 
-
-    sleep(1);
+    //sleep(1);
 
     //now connect to the paula server
     if (-1 == connect(to_paula_fd, (const struct sockaddr *) &to_paula, sizeof(struct sockaddr_un))) {

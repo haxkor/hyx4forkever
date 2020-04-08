@@ -32,6 +32,7 @@ struct input input;
 bool quit;
 
 jmp_buf jmp_mainloop;
+char *socketname;
 
 
 void die(char const *s)
@@ -145,10 +146,12 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version"))
             version();
         else if (!strcmp(argv[i], "-offset")) {
-            offset = atoi(argv[++i]);
-            if (i+2 != argc) help(EXIT_FAILURE);    //-output N should be the last option to pass
-        }
-        else if (!filename)
+            offset = strtoul(argv[++i], NULL, 0);
+            //if (i+2 != argc) help(EXIT_FAILURE);    //-output N should be the last option to pass
+        } else if (!strcmp(argv[i], "-socket")) {
+            socketname = malloc(strlen(argv[i + 1]));
+            strcpy(socketname, argv[++i]);
+        } else if (!filename)
             filename = argv[i];
         else
             help(EXIT_FAILURE);
