@@ -19,6 +19,8 @@
 #define MAINFD 0
 #define UPDATEFD 1
 
+
+
 struct sockaddr_un to_paula;
 struct blob blob;
 
@@ -208,6 +210,19 @@ void sendToPaula() {
     fprintf(mylog, "sent stuff to paula, start= %d, len= %d\n", pos, len);
 }
 
+void requestCommandPaula(){
+    int fd_main= updater_communicationfds[FDIND_UPDATER];
+    char cmd[0x100];
+    read(fd_main, cmd, 0x100); //FIXME make this a constant
+
+    send_strict(to_paula_fd, cmd, 0x100,0); //send cmd to paula, get response
+    recv_strict(to_paula_fd,cmd,0x100,0);
+
+    write(fd_main, cmd, 0x100); //send it back to the main thread
+
+
+}
+
 void fromMain(short events) {
     assert(events | POLLIN);
     if (events != POLLIN){
@@ -225,6 +240,9 @@ void fromMain(short events) {
         case UPD_FROMBLOB:
             sendToPaula();
             break;
+        case CMD_REQUEST:
+            requestCommandPaula();
+            break;
         default:
             printf("in frommain, check= %d", check);
             exit(EXIT_FAILURE);
@@ -232,6 +250,28 @@ void fromMain(short events) {
     }
 
 
+}
+
+/* this is called by the main thread when the user wants to free a specific adress*/
+void sendCmd(char * cmd, char * resultbuf){
+    //send data to updater thread
+    int fd=updater_communicationfds[MAINFD];
+    byte buf[0x100];
+    memset(buf,0,sizeof(buf));
+    buf[0]= (byte)CMD_REQUEST;
+
+    size_t cmdlen= min(strlen(cmd),sizeof(buf)-1); //avoid cheeky overflows
+    memcpy(buf+1, cmd, cmdlen);
+
+    write(fd,buf,sizeof(buf));  //write cmd to updater thread
+    byte check[2];
+    read(fd, (void *) check[0], 2); //wait for response of updater thread
+    if (check[0] == CMD_REQUEST_SUCCESS){
+        read(fd, resultbuf, check[1]);
+    } else {
+        read(fd, resultbuf,check[1]);
+        strcpy(resultbuf,"error in transmission");
+    }
 }
 
 

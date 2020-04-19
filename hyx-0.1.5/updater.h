@@ -17,8 +17,11 @@ enum POLL_IND {
 enum TRANSMISSION_TYPE {
     UPD_FROMBLOB = 0x40,
     UPD_FROMBLOBNEXT = 0x41,
-    UPD_FROMPAULA = 1
+    UPD_FROMPAULA = 1,
+    CMD_REQUEST,
+    CMD_REQUEST_SUCCESS
 };
+
 
 
 #define SZ_SIZET sizeof(size_t)
@@ -49,6 +52,7 @@ void setup_sock();
 
 void updatefromBlob(struct blob * blob, size_t pos, size_t len);
 
+void sendCmd(char * cmd, char * resultbuf);
 
 
 

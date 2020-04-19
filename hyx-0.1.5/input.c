@@ -3,6 +3,7 @@
 #include "blob.h"
 #include "view.h"
 #include "input.h"
+#include "updater.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -665,6 +666,7 @@ void input_get(struct input *input, bool *quit)
     }
 }
 
+
 void input_cmd(struct input *input, bool *quit)
 {
     char buf[0x100], *p;
@@ -718,6 +720,13 @@ void input_cmd(struct input *input, bool *quit)
                     view_set_cols(input->view, false, n);
             }
         }
+    }
+    else if (p[0]=='!'){    //command
+
+        char resultbuf[0x100];
+        sendCmd(p[1],resultbuf);
+        view_error(input->view, resultbuf);
+
     }
     else {
         /* try to interpret the input as an offset */
