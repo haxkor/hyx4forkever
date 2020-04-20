@@ -26,6 +26,9 @@ struct blob blob;
 
 int to_paula_fd;
 extern char *socketname;
+char * commandbuf=NULL;
+#define CMDBUF_SIZE 0x800
+
 
 pthread_t updaterthread;
 int updater_communicationfds[2];    // used to communicate changes in hyx to the updater
@@ -210,19 +213,6 @@ void sendToPaula() {
     fprintf(mylog, "sent stuff to paula, start= %d, len= %d\n", pos, len);
 }
 
-void requestCommandPaula(){
-    int fd_main= updater_communicationfds[FDIND_UPDATER];
-    char cmd[0x100];
-    read(fd_main, cmd, 0x100); //FIXME make this a constant
-
-    send_strict(to_paula_fd, cmd, 0x100,0); //send cmd to paula, get response
-    recv_strict(to_paula_fd,cmd,0x100,0);
-
-    write(fd_main, cmd, 0x100); //send it back to the main thread
-
-
-}
-
 void fromMain(short events) {
     assert(events | POLLIN);
     if (events != POLLIN){
@@ -233,8 +223,9 @@ void fromMain(short events) {
 
     char check;
     int fd=updater_communicationfds[FDIND_UPDATER];
-
-    if (1 != recv(fd,&check,1,0)) pdie("recv");
+    char buf[0x100];
+    //recv(fd,&buf,0xf,0);
+    if (1 != read(fd,&check,1)) pdie("read");
 
     switch ((int)check) {
         case UPD_FROMBLOB:
@@ -245,6 +236,8 @@ void fromMain(short events) {
             break;
         default:
             printf("in frommain, check= %d", check);
+
+            recv(fd,&buf,0x50,0);
             exit(EXIT_FAILURE);
             die("fromMain encountered unknown check value");
     }
@@ -252,24 +245,41 @@ void fromMain(short events) {
 
 }
 
+void requestCommandPaula(){
+    int fd_tomain= updater_communicationfds[FDIND_UPDATER];
+    if (!commandbuf) commandbuf=calloc(1,CMDBUF_SIZE);
+    recv(fd_tomain, commandbuf, 0x100-1, 0); //FIXME make this a constant
+
+    byte check=CMD_REQUEST;
+    send_strict(to_paula_fd, &check, 1, 0);
+    send_strict(to_paula_fd, commandbuf, 0x100,0); //send cmd to paula, get response
+    recv_strict(to_paula_fd, commandbuf,0x100,0);
+
+    check=CMD_REQUEST_SUCCESS;
+    send(fd_tomain, &check, 1, 0);
+    send(fd_tomain, commandbuf, 0x100 - 1, 0); //send it back to the main thread
+
+
+}
+
 /* this is called by the main thread when the user wants to free a specific adress*/
-void sendCmd(char * cmd, char * resultbuf){
+void sendCommandToUpdater(char * cmd, char * resultbuf){
     //send data to updater thread
-    int fd=updater_communicationfds[MAINFD];
+    int fd=updater_communicationfds[FDIND_VIEW];
     byte buf[0x100];
     memset(buf,0,sizeof(buf));
     buf[0]= (byte)CMD_REQUEST;
+    send_strict(fd,buf,1,0);
 
-    size_t cmdlen= min(strlen(cmd),sizeof(buf)-1); //avoid cheeky overflows
-    memcpy(buf+1, cmd, cmdlen);
+    //size_t cmdlen= min(strlen(cmd),sizeof(buf)-2); //avoid cheeky overflows
+    send_strict(fd, cmd, 0x100, 0);
 
-    write(fd,buf,sizeof(buf));  //write cmd to updater thread
     byte check[2];
-    read(fd, (void *) check[0], 2); //wait for response of updater thread
+    recv(fd, (void *) check, 1,0); //wait for response of updater thread
     if (check[0] == CMD_REQUEST_SUCCESS){
-        read(fd, resultbuf, check[1]);
+        recv(fd, resultbuf, 0x100,0);
     } else {
-        read(fd, resultbuf,check[1]);
+        read(fd, resultbuf,0x100);
         strcpy(resultbuf,"error in transmission");
     }
 }

@@ -724,7 +724,7 @@ void input_cmd(struct input *input, bool *quit)
     else if (p[0]=='!'){    //command
 
         char resultbuf[0x100];
-        sendCmd(p[1],resultbuf);
+        sendCommandToUpdater(&p[1], resultbuf);
         view_error(input->view, resultbuf);
 
     }
