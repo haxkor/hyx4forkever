@@ -37,7 +37,7 @@ void view_init(struct view *view, struct blob *blob, struct input *input, size_t
 
     if (viewoffset != 0){
         view->offset = viewoffset;
-        view->pos_digits= mylog2(viewoffset);
+        //view->pos_digits= mylog2(viewoffset);
     }
 
     if (tcgetattr(fileno(stdin), &view->term))

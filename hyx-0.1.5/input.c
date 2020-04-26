@@ -722,6 +722,7 @@ void input_cmd(struct input *input, bool *quit)
         }
     }
     else if (p[0]=='!'){    //command
+        p[strlen(p)]=' ';   //put the space that strtok removed back in place
 
         char resultbuf[0x100];
         sendCommandToUpdater(&p[1], resultbuf);
