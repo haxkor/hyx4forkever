@@ -78,10 +78,8 @@ void getUpdates_fromPaula() {
     if (fflush(mylog)) printf("fflush log error");
 
     struct update_entry entries[num_updates];
-    //fprintf(mylog, "num_up= %d\n", num_updates);
 
     for (int i = 0; i < num_updates; i++) {         //we get the updates
-        //fprintf(mylog,"in getupdate get loop\n");
         struct update_entry * entry = &entries[i];
 
         recv_strict(to_paula_fd, &entry->start, 4, 0);
@@ -94,7 +92,6 @@ void getUpdates_fromPaula() {
 
     }
 
-    // we write the updates
     if (0 != pthread_mutex_lock(&blob.mutex_data)) pdie("pthread_mutex_lock");
     for (int i = 0; i < num_updates; i++) {
         struct update_entry * entry = &entries[i];
@@ -103,8 +100,6 @@ void getUpdates_fromPaula() {
     }
     if (0 != pthread_mutex_unlock(&blob.mutex_data)) pdie("pthread_mutex_unlock");
 
-    fprintf(mylog, "updates written, returning\n");
-    fflush(mylog);
 
 }
 

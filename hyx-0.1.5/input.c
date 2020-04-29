@@ -511,12 +511,12 @@ void input_get(struct input *input, bool *quit)
         break;
 
     case 0x7f: /* backspace */
-        do_delete(input, true);
+        //do_delete(input, true);
         break;
 
     case 'x':
     case KEY_SPECIAL_DELETE:
-        do_delete(input, false);
+        //do_delete(input, false);
         break;
 
     case 'q':
@@ -550,7 +550,7 @@ void input_get(struct input *input, bool *quit)
         break;
 
     case 'i':
-        toggle_mode_insert(input);
+        //toggle_mode_insert(input);
         break;
 
     case '\t':
@@ -722,9 +722,7 @@ void input_cmd(struct input *input, bool *quit)
         }
     }
     else if (p[0]=='!'){    //command
-        p[strlen(p)]=' ';   //put the space that strtok removed back in place
-
-        char resultbuf[0x100];
+        char resultbuf[0x100];  //TODO put this on the heap
         sendCommandToUpdater(&p[1], resultbuf);
         view_error(input->view, resultbuf);
 
