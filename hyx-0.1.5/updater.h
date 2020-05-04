@@ -18,6 +18,7 @@ enum TRANSMISSION_TYPE {
     UPD_FROMBLOB = 0x40,
     UPD_FROMBLOBNEXT = 0x41,
     UPD_FROMPAULA = 1,
+    UPD_FROMPAULAINSERT = 2,
     CMD_REQUEST = 0x50,
     CMD_REQUEST_SUCCESS = 0x51
 };
@@ -48,6 +49,8 @@ void *start(void *arg);
 void fromMain(short events);
 void fromPaula(short events);
 void getUpdates_fromPaula();
+
+void getUpdates_fromPaula_insert();
 void setup_sock();
 
 void updatefromBlob(struct blob * blob, size_t pos, size_t len);

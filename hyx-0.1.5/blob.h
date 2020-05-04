@@ -42,7 +42,7 @@ struct blob {
 
 void blob_init(struct blob *blob);
 
-void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool update);
+void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool sendUpdate);
 
 void blob_insert(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool update);
 

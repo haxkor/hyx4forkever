@@ -20,7 +20,7 @@ void blob_init(struct blob *blob)
 }
 
 
-void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool update)
+void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool sendUpdate)
 {
     assert(pos + len <= blob->len);
 
@@ -34,9 +34,9 @@ void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, b
         for (size_t i = pos / 0x1000; i < (pos + len + 0xfff) / 0x1000; ++i)
             blob->dirty[i / 8] |= 1 << i % 8;
 
-    /* update==True only if we are getting user input. after this, make sure the updaterthread isnt using blob.data
-     * The locking is done here so that the updater is guaranteed to write all updates at once*/
-    if (update) {
+    /* sendUpdate==True only if we are getting user input. after this, make sure the updaterthread isnt using blob.data
+     * the updaterThread locks before calling this function multiple times to avoid multiple locks/unlocks. */
+    if (sendUpdate) {
         switch (pthread_mutex_trylock(&blob->mutex_data)) {
             case 0: //lock aquired
                 break;
@@ -46,9 +46,10 @@ void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, b
                 pdie("pthread_mutex_trylock");
         }
         updatefromBlob(blob, pos, len);     //send updates to paula
+        pthread_mutex_unlock(&blob->mutex_data);
+        if (0 != pthread_mutex_unlock(&blob->mutex_data)) pdie("pthread_mutex_unlock");
     }
     memcpy(blob->data + pos, data, len);
-    pthread_mutex_unlock(&blob->mutex_data);
 }
 
 void blob_insert(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool update)
@@ -67,9 +68,6 @@ void blob_insert(struct blob *blob, size_t pos, byte const *data, size_t len, bo
     blob->data = realloc_strict(blob->data, blob->len += len);
 
     if (update) exit(EXIT_FAILURE);
-        /* this should not happen   TODO exclude insert mode from this hyx */
-
-
 
     memmove(blob->data + pos + len, blob->data + pos, blob->len - pos - len);
     memcpy(blob->data + pos, data, len);

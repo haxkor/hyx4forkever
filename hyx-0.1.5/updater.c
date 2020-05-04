@@ -49,6 +49,15 @@ int recv_strict(int fd, void * buf, size_t len, int flags){
     return result;
 }
 
+int recv_large(int fd, void *buf, size_t len, int flags){
+    size_t result=0;
+    while(result<len){
+        result+= recv(fd, buf + result, len-result, flags);
+    }
+    assert(result==len);
+    return result;
+}
+
 
 void setup_sock() {
     memset(&to_paula, 0, sizeof(struct sockaddr_un));
@@ -100,14 +109,32 @@ void getUpdates_fromPaula() {
     }
     if (0 != pthread_mutex_unlock(&blob.mutex_data)) pdie("pthread_mutex_unlock");
 
+}
 
+void getUpdates_fromPaula_insert(){
+    size_t len=0;
+    int fd=to_paula_fd;
+    recv_strict(fd,&len, SZ_SIZET,0);
+
+    assert(len>0 && len % 0x1000 == 0);
+    byte buf[len];
+    recv_large(fd,buf, len,0);
+
+    if (0 != pthread_mutex_lock(&blob.mutex_data)) pdie("pthread_mutex_lock");
+    blob_replace(&blob,0, buf, blob.len, false, false);
+    blob_insert(&blob, blob.len, buf + blob.len, len - blob.len, false, false);
+    if (0 != pthread_mutex_unlock(&blob.mutex_data)) pdie("pthread_mutex_unlock");
+
+    view_adjust(upd_viewPtr);
+    view_recompute(upd_viewPtr, false);
+    view_dirty_fromto(upd_viewPtr,0, blob.len);
 }
 
 void fromPaula(short events) {
     //handle events here
     assert(events & POLLIN);
     if (events != POLLIN){
-        if (events | POLLERR) {
+        if (events & POLLERR) {
             printf("connection to paula closed\n");
             exit(EXIT_FAILURE);
         } else {
@@ -125,6 +152,10 @@ void fromPaula(short events) {
         case UPD_FROMPAULA:
             fprintf(mylog, "calling getUpdates\n");
             getUpdates_fromPaula();
+            break;
+
+        case UPD_FROMPAULAINSERT:
+            getUpdates_fromPaula_insert();
             break;
 
         default:
