@@ -16,10 +16,6 @@
 #include "updater.h"
 #include "view.h"
 
-#define MAINFD 0
-#define UPDATEFD 1
-
-
 
 struct sockaddr_un to_paula;
 struct blob blob;
@@ -52,7 +48,9 @@ int recv_strict(int fd, void * buf, size_t len, int flags){
 int recv_large(int fd, void *buf, size_t len, int flags){
     size_t result=0;
     while(result<len){
-        result+= recv(fd, buf + result, len-result, flags);
+        int ret=recv(fd, buf + result, len-result, flags);
+        if (ret<0) pdie("recv");
+        result+= ret;
     }
     assert(result==len);
     return result;
