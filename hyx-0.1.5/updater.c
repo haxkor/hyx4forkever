@@ -327,7 +327,7 @@ void *start(void *arg) {
         fprintf(mylog, "in infinite loop\n");
 
 
-        int ret = poll(pollfd, 2, 123000);
+        int ret = poll(pollfd, 2, -1);
         fprintf(mylog, "poll returned %d\n", ret);
         fflush(mylog);
 

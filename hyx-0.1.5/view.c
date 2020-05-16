@@ -222,7 +222,7 @@ static void render_line(struct view *view, size_t off, size_t last)
         }
         else {
             next_color = isalnum(b) ? color_cyan
-                       : isprint(b) ? color_blue
+                       : isprint(b) ? color_green
                        : !b ? color_red
                        : color_normal;
             BOTH(
