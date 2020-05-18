@@ -1,22 +1,10 @@
-cmake_minimum_required(VERSION 3.15)
-project(hyx_0_1_5 C)
+cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+project(hyx VERSION 0.1.6 LANGUAGES C)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
-include_directories(.)
+file(GLOB sources "*.c")
 
-add_executable(hyx_0_1_5
-        ansi.h
-        blob.c
-        blob.h
-        common.c
-        common.h
-        history.c
-        history.h
-        hyx.c
-        input.c
-        input.h
-        updater.c
-        updater.h
-        view.c
-        view.h)
+add_executable(hyx ${sources})
+set_property(TARGET hyx PROPERTY C_STANDARD 11)
+target_link_libraries(hyx pthread)
