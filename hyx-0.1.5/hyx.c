@@ -25,7 +25,7 @@
 
 #include <pthread.h>
 
-struct blob blob;
+struct blob_t blob;
 struct view view;
 struct input input;
 

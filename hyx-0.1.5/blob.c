@@ -12,7 +12,7 @@
 #include <sys/mman.h>
 
 
-void blob_init(struct blob *blob)
+void blob_init(struct blob_t *blob)
 {
     memset(blob, 0, sizeof(*blob));
     history_init(&blob->undo);
@@ -20,7 +20,7 @@ void blob_init(struct blob *blob)
 }
 
 
-void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool sendUpdate)
+void blob_replace(struct blob_t *blob, size_t pos, byte const *data, size_t len, bool save_history, bool sendUpdate)
 {
     assert(pos + len <= blob->len);
 
@@ -52,7 +52,7 @@ void blob_replace(struct blob *blob, size_t pos, byte const *data, size_t len, b
     memcpy(blob->data + pos, data, len);
 }
 
-void blob_insert(struct blob *blob, size_t pos, byte const *data, size_t len, bool save_history, bool update)
+void blob_insert(struct blob_t *blob, size_t pos, byte const *data, size_t len, bool save_history, bool update)
 {
     assert(pos <= blob->len);
     assert(blob_can_move(blob));
@@ -73,7 +73,7 @@ void blob_insert(struct blob *blob, size_t pos, byte const *data, size_t len, bo
     memcpy(blob->data + pos, data, len);
 }
 
-void blob_delete(struct blob *blob, size_t pos, size_t len, bool save_history)
+void blob_delete(struct blob_t *blob, size_t pos, size_t len, bool save_history)
 {
     assert(pos + len <= blob->len);
     assert(blob_can_move(blob));
@@ -90,7 +90,7 @@ void blob_delete(struct blob *blob, size_t pos, size_t len, bool save_history)
     blob->data = realloc_strict(blob->data, blob->len);
 }
 
-void blob_free(struct blob *blob)
+void blob_free(struct blob_t *blob)
 {
     free(blob->filename);
 
@@ -110,26 +110,26 @@ void blob_free(struct blob *blob)
     history_free(&blob->redo);
 }
 
-bool blob_can_move(struct blob const *blob)
+bool blob_can_move(struct blob_t const *blob)
 {
     return blob->alloc == BLOB_MALLOC;
 }
 
-bool blob_undo(struct blob *blob, size_t *pos)
+bool blob_undo(struct blob_t *blob, size_t *pos)
 {
     bool r = history_step(&blob->undo, blob, &blob->redo, pos);
     blob->saved_dist -= r;
     return r;
 }
 
-bool blob_redo(struct blob *blob, size_t *pos)
+bool blob_redo(struct blob_t *blob, size_t *pos)
 {
     bool r = history_step(&blob->redo, blob, &blob->undo, pos);
     blob->saved_dist += r;
     return r;
 }
 
-void blob_yank(struct blob *blob, size_t pos, size_t len)
+void blob_yank(struct blob_t *blob, size_t pos, size_t len)
 {
     free(blob->clipboard.data);
     blob->clipboard.data = NULL;
@@ -140,7 +140,7 @@ void blob_yank(struct blob *blob, size_t pos, size_t len)
     }
 }
 
-size_t blob_paste(struct blob *blob, size_t pos, enum op_type type)
+size_t blob_paste(struct blob_t *blob, size_t pos, enum op_type type)
 {
     if (!blob->clipboard.data) return 0;
 
@@ -159,7 +159,7 @@ size_t blob_paste(struct blob *blob, size_t pos, enum op_type type)
 }
 
 /* modified Boyer-Moore-Horspool algorithm. */
-ssize_t blob_search(struct blob *blob, byte const *needle, size_t len, size_t start, ssize_t dir)
+ssize_t blob_search(struct blob_t *blob, byte const *needle, size_t len, size_t start, ssize_t dir)
 {
     size_t blen = blob_length(blob);
 
@@ -205,7 +205,7 @@ ssize_t blob_search(struct blob *blob, byte const *needle, size_t len, size_t st
 }
 
 
-void blob_load(struct blob *blob, char const *filename)
+void blob_load(struct blob_t *blob, char const *filename)
 {
     struct stat st;
     int fd;
@@ -274,7 +274,7 @@ void blob_load(struct blob *blob, char const *filename)
     blob->saved_dist = 0;
 }
 
-enum blob_save_error blob_save(struct blob *blob, char const *filename)
+enum blob_save_error blob_save(struct blob_t *blob, char const *filename)
 {
     int fd;
     struct stat st;
@@ -333,12 +333,12 @@ enum blob_save_error blob_save(struct blob *blob, char const *filename)
     return BLOB_SAVE_OK;
 }
 
-bool blob_is_saved(struct blob const *blob)
+bool blob_is_saved(struct blob_t const *blob)
 {
     return !blob->saved_dist;
 }
 
-byte const *blob_lookup(struct blob const *blob, size_t pos, size_t *len)
+byte const *blob_lookup(struct blob_t const *blob, size_t pos, size_t *len)
 {
     assert(pos < blob->len);
 
@@ -347,7 +347,7 @@ byte const *blob_lookup(struct blob const *blob, size_t pos, size_t *len)
     return blob->data + pos;
 }
 
-void blob_read_strict(struct blob *blob, size_t pos, byte *buf, size_t len)
+void blob_read_strict(struct blob_t *blob, size_t pos, byte *buf, size_t len)
 {
     byte const *ptr;
     for (size_t i = 0, n; i < len; i += n) {

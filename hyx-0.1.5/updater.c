@@ -18,7 +18,7 @@
 
 
 struct sockaddr_un to_paula;
-struct blob blob;
+struct blob_t blob;
 
 int to_paula_fd;
 extern char *socketname;
@@ -119,7 +119,7 @@ void getUpdates_fromPaula_insert(){
     recv_large(fd,buf, len,0);
 
     if (0 != pthread_mutex_lock(&blob.mutex_data)) pdie("pthread_mutex_lock");
-    blob_replace(&blob,0, buf, blob.len, false, false);
+    blob_replace(&blob, 0, buf, blob.len, false, false);
     if (len > blob.len){
         blob_insert(&blob, blob.len, buf + blob.len, len - blob.len, false, false);
     }
@@ -127,7 +127,7 @@ void getUpdates_fromPaula_insert(){
 
     view_adjust(upd_viewPtr);
     view_recompute(upd_viewPtr, false);
-    view_dirty_fromto(upd_viewPtr,0, blob.len);
+    view_dirty_fromto(upd_viewPtr, 0, blob.len);
 }
 
 void fromPaula(short events) {
@@ -166,7 +166,7 @@ void fromPaula(short events) {
 }
 
 /* this is called by the functions changing the data of the blob. */
-void updatefromBlob(struct blob * blob, size_t pos, size_t len) {
+void updatefromBlob(struct blob_t * blob, size_t pos, size_t len) {
     int fd = updater_communicationfds[FDIND_VIEW];   //send it to the updater
     char type = UPD_FROMBLOB;     //to indicate an update
     fprintf(mylog, "in update from blob\n");
@@ -284,8 +284,6 @@ void requestCommandPaula(){
     check=CMD_REQUEST_SUCCESS;
     send(fd_tomain, &check, 1, 0);
     send(fd_tomain, commandbuf, 0x100 - 1, 0); //send it back to the main thread
-
-
 }
 
 /* this is called by the main thread when the user wants to free a specific adress*/

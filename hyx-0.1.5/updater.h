@@ -39,7 +39,7 @@ struct update_entry {
 };
 
 struct init_arg {
-    struct blob * blob;
+    struct blob_t * blob;
     struct view * view;
 
 
@@ -53,7 +53,7 @@ void getUpdates_fromPaula();
 void getUpdates_fromPaula_insert();
 void setup_sock();
 
-void updatefromBlob(struct blob * blob, size_t pos, size_t len);
+void updatefromBlob(struct blob_t * blob, size_t pos, size_t len);
 
 void sendCommandToUpdater(char * cmd, char * resultbuf);
 void requestCommandPaula();

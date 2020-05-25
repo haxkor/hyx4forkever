@@ -175,7 +175,7 @@ static void do_reset_soft(struct input *input)
 static void toggle_mode_select(struct input *input)
 {
     struct view *V = input->view;
-    struct blob *B = V->blob;
+    struct blob_t *B = V->blob;
 
     switch (input->mode) {
     case INPUT:
@@ -294,7 +294,7 @@ static void do_yank(struct input *input)
 static size_t do_paste(struct input *input)
 {
     struct view *V = input->view;
-    struct blob *B = V->blob;
+    struct blob_t *B = V->blob;
     size_t retval;
 
     if (input->mode != INPUT)
@@ -314,7 +314,7 @@ static size_t do_paste(struct input *input)
 static bool do_delete(struct input *input, bool back)
 {
     struct view *V = input->view;
-    struct blob *B = V->blob;
+    struct blob_t *B = V->blob;
 
     if (!blob_can_move(B)) {
         view_error(V, "can't delete: file is memory-mapped.");
@@ -364,7 +364,7 @@ static void do_quit(struct input *input, bool *quit, bool force)
 static void do_search_cont(struct input *input, ssize_t dir)
 {
     struct view *V = input->view;
-    struct blob *B = V->blob;
+    struct blob_t *B = V->blob;
     ssize_t pos = blob_search(B, input->search.needle, input->search.len,
             (input->cur + blob_length(B) + dir) % blob_length(B), dir);
 
@@ -380,7 +380,7 @@ static void do_search_cont(struct input *input, ssize_t dir)
 static void do_inc_dec(struct input *input, byte diff)
 {
     struct view *V = input->view;
-    struct blob *B = V->blob;
+    struct blob_t *B = V->blob;
 
     /* FIXME should we do anything for selections? */
     if (input->mode != INPUT)
@@ -431,7 +431,7 @@ void input_get(struct input *input, bool *quit)
     byte b;
 
     struct view *V = input->view;
-    struct blob *B = V->blob;
+    struct blob_t *B = V->blob;
 
     k = get_key();
 

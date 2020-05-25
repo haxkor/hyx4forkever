@@ -28,7 +28,7 @@ size_t mylog2(size_t n)
     return result;
 }
 
-void view_init(struct view *view, struct blob *blob, struct input *input, size_t viewoffset)
+void view_init(struct view *view, struct blob_t *blob, struct input *input, size_t viewoffset)
 {
     memset(view, 0, sizeof(*view));
     view->pos_digits = 4; /* rather arbitrary TODO*/

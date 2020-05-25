@@ -13,7 +13,7 @@ struct diff {
     struct diff *next;
 };
 
-static void diff_apply(struct blob *blob, struct diff *diff)
+static void diff_apply(struct blob_t *blob, struct diff *diff)
 {
     switch (diff->type) {
     case REPLACE:
@@ -48,7 +48,7 @@ void history_free(struct diff **history)
 }
 
 /* pushes a diff that _undoes_ the passed operation */
-void history_save(struct diff **history, enum op_type type, struct blob *blob, size_t pos, size_t len)
+void history_save(struct diff **history, enum op_type type, struct blob_t *blob, size_t pos, size_t len)
 {
     struct diff *diff = malloc_strict(sizeof(*diff));
     diff->type = type;
@@ -74,7 +74,7 @@ void history_save(struct diff **history, enum op_type type, struct blob *blob, s
     *history = diff;
 }
 
-bool history_step(struct diff **from, struct blob *blob, struct diff **to, size_t *pos)
+bool history_step(struct diff **from, struct blob_t *blob, struct diff **to, size_t *pos)
 {
     struct diff *diff = *from;
 

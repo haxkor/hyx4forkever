@@ -8,7 +8,7 @@
 
 struct input;
 struct view {   
-    struct blob *blob;
+    struct blob_t *blob;
     struct input *input; /* FIXME hack */
 
     size_t start;   //start of file? or just of what is to be drawn? look for it in code!
@@ -26,7 +26,7 @@ struct view {
     struct termios term;
 };
 
-void view_init(struct view *view, struct blob *blob, struct input *input, size_t viewoffset);
+void view_init(struct view *view, struct blob_t *blob, struct input *input, size_t viewoffset);
 void view_text(struct view *view);
 void view_visual(struct view *view);
 void view_recompute(struct view *view, bool winch);
