@@ -120,7 +120,9 @@ void getUpdates_fromPaula_insert(){
 
     if (0 != pthread_mutex_lock(&blob.mutex_data)) pdie("pthread_mutex_lock");
     blob_replace(&blob,0, buf, blob.len, false, false);
-    blob_insert(&blob, blob.len, buf + blob.len, len - blob.len, false, false);
+    if (len > blob.len){
+        blob_insert(&blob, blob.len, buf + blob.len, len - blob.len, false, false);
+    }
     if (0 != pthread_mutex_unlock(&blob.mutex_data)) pdie("pthread_mutex_unlock");
 
     view_adjust(upd_viewPtr);
