@@ -1,10 +1,9 @@
-/* tst
+/* 
  *
  * Copyright (c) 2016-2018 Lorenz Panny
  *
- * This is hyx version 0.1.5 (01 June 2018).
+ * This is hyx4forkever version 0.1  (26.05.2020)
  * Check for newer versions at https://yx7.cc/code.
- * Please report bugs to y@yx7.cc.
  *
  * This program is released under the MIT license; see license.txt.
  *
