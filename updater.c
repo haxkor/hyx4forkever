@@ -33,21 +33,21 @@ FILE *mylog;
 pthread_mutex_t communication_mutex=PTHREAD_MUTEX_INITIALIZER;
 
 int send_strict(int fd, const void * buf, size_t len, int flags){
-    int result=send(fd,buf,len,flags);
-    if (result != len) pdie("send");
+    ssize_t result=send(fd,buf,len,flags);
+    if (result < 0 || ((size_t) result) != len) pdie("send");
     return result;
 }
 
 int recv_strict(int fd, void * buf, size_t len, int flags){
-    int result= recv(fd,buf,len,flags);
-    if (result != len) pdie("recv");
+    ssize_t result= recv(fd,buf,len,flags);
+    if (result < 0 || ((size_t) result) != len) pdie("recv");
     return result;
 }
 
 int recv_large(int fd, void *buf, size_t len, int flags){
     size_t result=0;
     while(result<len){
-        int ret=recv(fd, buf + result, len-result, flags);
+        ssize_t ret=recv(fd, buf + result, len-result, flags);
         if (ret<0) pdie("recv");
         result+= ret;
     }
@@ -166,6 +166,7 @@ void fromPaula(short events) {
 
 /* this is called by the functions changing the data of the blob. */
 void updatefromBlob(struct blob_t * blob, size_t pos, size_t len) {
+    (void) blob;    // suppress warning for unused blob
     int fd = updater_communicationfds[FDIND_VIEW];   //send it to the updater
     char type = UPD_FROMBLOB;     //to indicate an update
     fprintf(mylog, "in update from blob\n");
@@ -235,7 +236,7 @@ void sendToPaula() {
     }
 
 
-    fprintf(mylog, "sent stuff to paula, start= %d, len= %d\n", pos, len);
+    fprintf(mylog, "sent stuff to paula, start= %zd, len= %zd\n", pos, len);
 }
 
 void fromMain(short events) {
@@ -311,6 +312,7 @@ void sendCommandToUpdater(char * cmd, char * resultbuf){
 #define XOR(A, B) (bool)(A)!=(bool)(B)
 
 void *start(void *arg) {
+    (void) arg; // supress warning about unused arg
     setup_sock();
 
     struct pollfd pollfd[2];
@@ -368,7 +370,7 @@ void *start(void *arg) {
 void updater_init(struct view *view) {
     if (0 != socketpair(AF_UNIX, SOCK_DGRAM, 0, updater_communicationfds)) pdie("socketpair");
     mylog = fopen("logfile", "w");
-    if (mylog < 0) pdie("fopen");
+    if (mylog == NULL) pdie("fopen");
     fprintf(mylog, "init log");
 
     upd_viewPtr = view;
