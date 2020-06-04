@@ -34,6 +34,8 @@ struct blob_t {
 
 };
 
+extern struct blob_t blob;
+
 void blob_init(struct blob_t *blob);
 
 void blob_replace(struct blob_t *blob, size_t pos, byte const *data, size_t len, bool save_history, bool sendUpdate);

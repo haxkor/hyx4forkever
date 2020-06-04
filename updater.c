@@ -18,7 +18,6 @@
 
 
 struct sockaddr_un to_paula;
-struct blob_t blob;
 
 int to_paula_fd;
 extern char *socketname;
