@@ -75,7 +75,7 @@ void getUpdates_fromPaula() {
     int num_updates;
     recv_strict(to_paula_fd, &num_updates, 4, 0);
 
-    if (fflush(mylog)) printf("fflush log error");
+    //if (fflush(mylog)) printf("fflush log error");
 
     struct update_entry entries[num_updates];
 
