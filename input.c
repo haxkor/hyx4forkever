@@ -726,7 +726,7 @@ void input_cmd(struct input *input, bool *quit)
         sendCommandToUpdater(&p[1], resultbuf);
         view_error(input->view, resultbuf);
     }
-    else if (!strcmp(p,"f")){
+    else if (p[0]=='f'){
         char resultbuf[0x100];
         memset(resultbuf+8,0,16);   // python-client will clear out the first null-byte
         sprintf(resultbuf, "free  %#zx", input->cur + input->view->offset);
