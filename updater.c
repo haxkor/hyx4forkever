@@ -70,7 +70,7 @@ void setup_sock() {
 }
 
 void getUpdates_fromPaula() {
-    fprintf(mylog, "in getUpdates_paula\n");
+    //fprintf(mylog, "in getUpdates_paula\n");
     //get number of updates
     int num_updates;
     recv_strict(to_paula_fd, &num_updates, 4, 0);
@@ -163,7 +163,7 @@ void updatefromBlob(struct blob_t * blob, size_t pos, size_t len) {
     (void) blob;    // suppress warning for unused blob
     int fd = updater_communicationfds[FDIND_VIEW];   //send it to the updater
     char type = UPD_FROMBLOB;     //to indicate an update
-    fprintf(mylog, "in update from blob\n");
+    //fprintf(mylog, "in update from blob\n");
 
     pthread_mutex_lock(&communication_mutex);
     send_strict(fd, &type, 1, 0);
@@ -179,7 +179,7 @@ bool nextpos_init = false;
 
 /* the other thread wrote pos and len to the socket, we will send the bytes to paula */
 void sendToPaula() {
-    fprintf(mylog, "in sendToPaula");
+    //fprintf(mylog, "in sendToPaula");
     int fromfd = updater_communicationfds[FDIND_UPDATER];    //recv from main thread
 
     size_t pos, len;
