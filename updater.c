@@ -1,6 +1,3 @@
-//#include "updater.h"
-//#include <common.h>
-
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -63,8 +60,6 @@ void setup_sock() {
     strcpy(to_paula.sun_path, socketname);
     to_paula_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 
-    //sleep(1);
-
     //now connect to the paula server
     if (-1 == connect(to_paula_fd, (const struct sockaddr *) &to_paula, sizeof(struct sockaddr_un))) {
         printf("initial connect\n");
@@ -77,9 +72,8 @@ void setup_sock() {
 void getUpdates_fromPaula() {
     fprintf(mylog, "in getUpdates_paula\n");
     //get number of updates
-    int ret, num_updates;
-    ret = recv(to_paula_fd, &num_updates, 4, 0);
-    if (ret != 4) pdie("recv");
+    int num_updates;
+    recv_strict(to_paula_fd, &num_updates, 4, 0);
 
     if (fflush(mylog)) printf("fflush log error");
 
@@ -89,13 +83,11 @@ void getUpdates_fromPaula() {
         struct update_entry * entry = &entries[i];
 
         recv_strict(to_paula_fd, &entry->start, 4, 0);
-
         recv_strict(to_paula_fd, &entry->len, 4, 0);
 
         size_t len = entry->len;
         entry->newdata = malloc(len);
         recv_strict(to_paula_fd, entry->newdata, len, 0);
-
     }
 
     if (0 != pthread_mutex_lock(&blob.mutex_data)) pdie("pthread_mutex_lock");
@@ -109,6 +101,7 @@ void getUpdates_fromPaula() {
 }
 
 void getUpdates_fromPaula_insert(){
+    // receive where and how many bytes to update
     size_t len=0;
     int fd=to_paula_fd;
     recv_strict(fd,&len, SZ_SIZET,0);
@@ -119,6 +112,8 @@ void getUpdates_fromPaula_insert(){
 
     if (0 != pthread_mutex_lock(&blob.mutex_data)) pdie("pthread_mutex_lock");
     blob_replace(&blob, 0, buf, blob.len, false, false);
+
+    //this happends if the heap grows and the whole heap is received again
     if (len > blob.len){
         blob_insert(&blob, blob.len, buf + blob.len, len - blob.len, false, false);
     }
@@ -142,14 +137,12 @@ void fromPaula(short events) {
         }
     }
 
-    fprintf(mylog, "fromPaula() has been called\n");
     char check = 0;
 
     recv_strict(to_paula_fd, &check, 1, 0);
 
     switch ((int) check) {
         case UPD_FROMPAULA:
-            fprintf(mylog, "calling getUpdates\n");
             getUpdates_fromPaula();
             break;
 
@@ -158,19 +151,19 @@ void fromPaula(short events) {
             break;
 
         default:
-            fprintf(mylog, "check = %d \n", (int) check);
+            printf("check = %d \n", (int) check);
             break;
     }
 
 }
 
-/* this is called by the functions changing the data of the blob. */
+/* this is called by the functions changing the data of the blob,
+ * meaning it is called by the "main" thread*/
 void updatefromBlob(struct blob_t * blob, size_t pos, size_t len) {
     (void) blob;    // suppress warning for unused blob
     int fd = updater_communicationfds[FDIND_VIEW];   //send it to the updater
     char type = UPD_FROMBLOB;     //to indicate an update
     fprintf(mylog, "in update from blob\n");
-
 
     pthread_mutex_lock(&communication_mutex);
     send_strict(fd, &type, 1, 0);
@@ -178,7 +171,6 @@ void updatefromBlob(struct blob_t * blob, size_t pos, size_t len) {
 
     send_strict(fd, &len, SZ_SIZET, 0);
     pthread_mutex_unlock(&communication_mutex); //as soon as i send it all in one go it should be unnecessary
-
 }
 
 size_t nextpos = 0;    /*this var is used to communicate bytechanges next to each other without sending pos twice */
@@ -210,12 +202,12 @@ void sendToPaula() {
 
 
     // send it to paula
-    if (false) {        // no truncation
+    if (false) {        // pos will always be sent
         send_strict(to_paula_fd, &check, SZ_CHAR, 0);
         if (check != UPD_FROMBLOBNEXT) send_strict(to_paula_fd, &pos, SZ_SIZET, 0);
         send_strict(to_paula_fd, &len, SZ_SIZET, 0);
         send_strict(to_paula_fd, blob.data + pos, len, 0);
-    } else {
+    } else {            // dont send pos if preceding byte was just send
         byte buf[SZ_CHAR + SZ_SIZET * 2 + len];
         memset(buf, 0, sizeof(buf));
         byte *bufptr = buf;
@@ -235,23 +227,24 @@ void sendToPaula() {
         send_strict(to_paula_fd, buf, send_len, 0);
     }
 
-
-    fprintf(mylog, "sent stuff to paula, start= %zd, len= %zd\n", pos, len);
 }
 
+/* This function is called by the updater if the mainthread wrote something
+*  to the socket */
 void fromMain(short events) {
     assert(events | POLLIN);
     if (events != POLLIN){
         if (events | POLLERR)
             die("fromMain POLLERR");
-        else die("unknown event in fromMain");
+        else die("unknown event in fromMain");      //CLion says this is unreachable
     }
 
     char check;
     int fd=updater_communicationfds[FDIND_UPDATER];
     char buf[0x100];
-    //recv(fd,&buf,0xf,0);
-    if (1 != read(fd,&check,1)) pdie("read");
+
+    //if (1 != read(fd,&check,1)) pdie("read");   // change to recv
+    recv_strict(fd, &check, 1, 0);
 
     switch ((int)check) {
         case UPD_FROMBLOB:
@@ -264,12 +257,10 @@ void fromMain(short events) {
             printf("in frommain, check= %d", check);
 
             recv(fd,&buf,0x50,0);
-            exit(EXIT_FAILURE);
             die("fromMain encountered unknown check value");
     }
-
-
 }
+
 
 void requestCommandPaula(){
     int fd_tomain= updater_communicationfds[FDIND_UPDATER];
@@ -325,12 +316,9 @@ void *start(void *arg) {
 
 
     while (1) {
-        fprintf(mylog, "in infinite loop\n");
-
-
         int ret = poll(pollfd, 2, -1);
-        fprintf(mylog, "poll returned %d\n", ret);
-        fflush(mylog);
+        //fprintf(mylog, "poll returned %d\n", ret);
+        //fflush(mylog);
 
         short paula_revents = pollfd[IND_PAULA].revents;
         short view_revents = pollfd[IND_VIEW].revents;
@@ -342,7 +330,8 @@ void *start(void *arg) {
                 exit(EXIT_FAILURE);
             case 1:
                 assert(XOR(paula_revents, view_revents));   //if both events are set, somethings wrong
-                fprintf(mylog, "case 1 in loop\n");
+                //fprintf(mylog, "case 1 in loop\n");
+
                 if (paula_revents)
                     fromPaula(paula_revents);
                 else {
@@ -351,7 +340,7 @@ void *start(void *arg) {
                     pthread_mutex_unlock(&communication_mutex);
                 }
                 break;
-            case 2:     // we should update both realheap and our copy. For now, dismiss our copy
+            case 2:
                 fromMain(view_revents);
                 fromPaula(paula_revents);
                 break;
@@ -359,22 +348,18 @@ void *start(void *arg) {
                 printf("poll() returned %d, i did not expect that\n", ret);
                 exit(EXIT_FAILURE);
         }
-
-
     }
-
-
 }
 
 
+/* called by the main thread*/
 void updater_init(struct view *view) {
     if (0 != socketpair(AF_UNIX, SOCK_DGRAM, 0, updater_communicationfds)) pdie("socketpair");
-    mylog = fopen("logfile", "w");
-    if (mylog == NULL) pdie("fopen");
-    fprintf(mylog, "init log");
+    //mylog = fopen("logfile", "w");
+    //if (mylog == NULL) pdie("fopen");
+    //fprintf(mylog, "init log");
 
     upd_viewPtr = view;
-
     pthread_create(&updaterthread, NULL, start, NULL);
 }
 
