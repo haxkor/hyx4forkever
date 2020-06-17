@@ -150,11 +150,22 @@ void fromPaula(short events) {
             getUpdates_fromPaula_insert();
             break;
 
+        case MSG_FROMPAULA:
+            showMessage_fromPaula();
+            break;
+
         default:
             printf("check = %d \n", (int) check);
             break;
     }
 
+}
+
+void showMessage_fromPaula(){
+    char msgbuf[0x100];
+    recv_strict(to_paula_fd, msgbuf, sizeof(msgbuf), 0);
+
+    view_error(upd_viewPtr, msgbuf);
 }
 
 /* this is called by the functions changing the data of the blob,
@@ -255,8 +266,7 @@ void fromMain(short events) {
             break;
         default:
             printf("in frommain, check= %d", check);
-
-            recv(fd,&buf,0x50,0);
+            recv(fd,&buf,0x50,0);   //this might not terminate
             die("fromMain encountered unknown check value");
     }
 }
@@ -286,7 +296,6 @@ void sendCommandToUpdater(char * cmd, char * resultbuf){
     buf[0]= (byte)CMD_REQUEST;
     send_strict(fd,buf,1,0);
 
-    //size_t cmdlen= min(strlen(cmd),sizeof(buf)-2); //avoid cheeky overflows
     send_strict(fd, cmd, 0x100, 0);
 
     byte check[2];
@@ -303,7 +312,7 @@ void sendCommandToUpdater(char * cmd, char * resultbuf){
 #define XOR(A, B) (bool)(A)!=(bool)(B)
 
 void *start(void *arg) {
-    (void) arg; // supress warning about unused arg
+    (void) arg; // suppress warning about unused arg
     setup_sock();
 
     struct pollfd pollfd[2];
@@ -346,7 +355,7 @@ void *start(void *arg) {
                 break;
             default:
                 printf("poll() returned %d, i did not expect that\n", ret);
-                exit(EXIT_FAILURE);
+                die("unexpceted poll() return value");
         }
     }
 }

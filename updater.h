@@ -19,6 +19,7 @@ enum TRANSMISSION_TYPE {
     UPD_FROMBLOBNEXT = 0x41,
     UPD_FROMPAULA = 1,
     UPD_FROMPAULAINSERT = 2,
+    MSG_FROMPAULA = 3,
     CMD_REQUEST = 0x50,
     CMD_REQUEST_SUCCESS = 0x51
 };
@@ -58,7 +59,7 @@ void updatefromBlob(struct blob_t * blob, size_t pos, size_t len);
 void sendCommandToUpdater(char * cmd, char * resultbuf);
 void requestCommandPaula();
 
-
+void showMessage_fromPaula();
 
 
 
