@@ -46,7 +46,7 @@ void blob_replace(struct blob_t *blob, size_t pos, byte const *data, size_t len,
                 pdie("pthread_mutex_trylock");
         }
         updatefromBlob(blob, pos, len);     //send updates to paula
-        pthread_mutex_unlock(&blob->mutex_data);
+        //pthread_mutex_unlock(&blob->mutex_data);
         if (0 != pthread_mutex_unlock(&blob->mutex_data)) pdie("pthread_mutex_unlock");
     }
     memcpy(blob->data + pos, data, len);
