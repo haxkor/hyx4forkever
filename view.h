@@ -6,6 +6,8 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 
+#include <pthread.h>
+
 struct input;
 struct view {   
     struct blob_t *blob;
@@ -24,6 +26,8 @@ struct view {
     bool winch;
 
     struct termios term;
+
+    pthread_mutex_t mutex_updating;
 };
 
 void view_init(struct view *view, struct blob_t *blob, struct input *input, size_t viewoffset);

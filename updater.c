@@ -98,6 +98,8 @@ void getUpdates_fromPaula() {
     }
     if (0 != pthread_mutex_unlock(&blob.mutex_data)) pdie("pthread_mutex_unlock");
 
+    view_update(upd_viewPtr);
+
 }
 
 void getUpdates_fromPaula_insert(){
@@ -164,7 +166,6 @@ void fromPaula(short events) {
 void showMessage_fromPaula(){
     char msgbuf[0x100];
     recv_strict(to_paula_fd, msgbuf, sizeof(msgbuf), 0);
-
     view_error(upd_viewPtr, msgbuf);
 }
 

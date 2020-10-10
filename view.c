@@ -10,6 +10,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <errno.h>
+
 static void fprint(FILE *fp, char const *s) { fprintf(fp, "%s", s); }
 static void print(char const *s) { fprint(stdout, s); }
 
@@ -254,6 +256,16 @@ static void render_line(struct view *view, size_t off, size_t last)
 //print each line, redraw only if its dirty
 void view_update(struct view *view)
 {
+    switch (pthread_mutex_trylock(&view->mutex_updating)){
+        case 0:     // lock aquired
+            break;
+        case EBUSY:
+            return;
+
+        default:
+            pdie("pthread_mutex_trylock");
+    }
+
     size_t last = max(blob_length(view->blob), view->input->cur + 1);
 
     if (view->scroll) {
@@ -272,6 +284,9 @@ void view_update(struct view *view)
     }
 
     fflush(stdout);
+
+    if (0 != pthread_mutex_unlock(&view->mutex_updating)) pdie("pthread_mutex_unlock");
+
 }
 
 void view_dirty_at(struct view *view, size_t pos)
